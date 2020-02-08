@@ -1,5 +1,5 @@
 //jshint esversion:6
-require("dotenv").config(); //has to right on the top
+require("dotenv").config(); //has to be right on the top
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -7,7 +7,6 @@ const mongoose = require("mongoose");
 const session = require('express-session');
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
-
 
 const app = express();
 
@@ -18,7 +17,7 @@ app.use(bodyParser.urlencoded({
 }));
 
 app.use(session({
-  secret: "",
+  secret: "My big little secret.",
   resave: false,
   saveUninitialized: false,
 }));
@@ -34,14 +33,13 @@ mongoose.set("useCreateIndex", true);
 
 const userSchema = new mongoose.Schema({
   email: String,
-  password: String
+  password: String,
+  secret: String
 });
 
 userSchema.plugin(passportLocalMongoose);
 
 const User = new mongoose.model("User", userSchema);
-
-// User.plugin(passportLocalMongoose);
 
 passport.use(User.createStrategy());
 
@@ -61,11 +59,42 @@ app.get("/register", function(req, res) {
 });
 
 app.get("/secrets", function(req, res) {
+  User.find({"secret": {$ne: null}}, function(err, foundUsers) {  //finds every secret field that is not equal to null
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundUsers) {       //if it finds Users
+        res.render("secrets", {usersWithSecrets: foundUsers});
+      }
+    }
+  });  
+});
+
+app.get("/submit", function(req, res) {
   if (req.isAuthenticated()) {
-    res.render("secrets");
+    res.render("submit");
   } else {
     res.redirect("/login");
   }
+});
+
+app.post("/submit", function(req, res) {
+  const submittedSecret = req.body.secret;
+
+  console.log(req.user.id);
+
+  User.findById(req.user.id, function(err, foundUser) {
+    if (err) {
+      console.log(err);
+    } else {
+      if (foundUser) {
+        foundUser.secret = submittedSecret;
+        foundUser.save(function() {
+          res.redirect("/secrets");
+        });
+      }
+    }
+  });
 });
 
 app.get("/logout", function(req, res) {
