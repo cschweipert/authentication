@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({
 }));
 
 app.use(session({
-  secret: "My big little secret.",
+  secret: "",
   resave: false,
   saveUninitialized: false,
 }));
